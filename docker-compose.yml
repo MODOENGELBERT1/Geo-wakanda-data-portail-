@@ -1,0 +1,229 @@
+name: cameroon-geo-node
+
+# Noeud national de donnees geospatiales - Cameroun (V1 vecteur)
+# Meme fichier en local (ta machine Windows) et sur le VPS : aucune reecriture.
+
+services:
+  # -------------------------------------------------------------------------
+  # Base de donnees spatiale centrale : PostgreSQL + PostGIS
+  # -------------------------------------------------------------------------
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: cgn_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cgn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cgn_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-cameroon}
+    ports:
+      - "5432:5432"        # accessible depuis QGIS / DBeaver sur ta machine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cgn} -d ${POSTGRES_DB:-cameroon}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # API : TiPg publie automatiquement les vues du schema "catalog"
+  #        en OGC API Features (GeoJSON) + tuiles vectorielles.
+  # -------------------------------------------------------------------------
+  api:
+    build:
+      context: ./docker
+      dockerfile: tipg.Dockerfile
+    container_name: cgn_api
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cgn}:${POSTGRES_PASSWORD:-cgn_pass}@db:5432/${POSTGRES_DB:-cameroon}
+      # On ne publie QUE le schema "catalog" (donnees ouvertes).
+      # Les tables "public" (brutes OSM) et "restricted" restent invisibles a l'API.
+      TIPG_DB_SCHEMAS: '["catalog"]'
+      TIPG_CORS_ORIGINS: "*"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # Passerelle unique (Caddy) : sert la plateforme web ET route vers les
+  # services (/api, /tiles, /access). UNE seule porte d'entree -> deploiement
+  # simple, HTTPS automatique une fois un domaine configure.
+  # -------------------------------------------------------------------------
+  web:
+    image: caddy:2-alpine
+    container_name: cgn_web
+    ports:
+      - "8090:80"            # en ligne : "80:80" et "443:443" avec un domaine
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./web:/srv:ro
+      - caddydata:/data
+    depends_on:
+      - api
+      - titiler
+      - access
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # MinIO : stockage objet S3-compatible pour les orthophotos (fichiers COG).
+  #  - Console d'admin : http://localhost:9001
+  #  - Les images ne vivent PAS dans PostGIS : elles vivent ici (portable).
+  # -------------------------------------------------------------------------
+  minio:
+    image: minio/minio:latest
+    container_name: cgn_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-cgnadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASSWORD:-change_me_minio}
+    ports:
+      - "9000:9000"    # API S3
+      - "9001:9001"    # console web
+    volumes:
+      - miniodata:/data
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # TiTiler : sert les tuiles raster a la volee en lisant les COG depuis MinIO.
+  #  Le navigateur l'appelle sur le port 8001 ; lui lit MinIO en interne.
+  # -------------------------------------------------------------------------
+  titiler:
+    image: ghcr.io/developmentseed/titiler:latest
+    container_name: cgn_titiler
+    environment:
+      # TiTiler lit les COG stockes dans MinIO (protocole S3)
+      AWS_ACCESS_KEY_ID: ${MINIO_USER:-cgnadmin}
+      AWS_SECRET_ACCESS_KEY: ${MINIO_PASSWORD:-change_me_minio}
+      AWS_S3_ENDPOINT: http://minio:9000
+      AWS_VIRTUAL_HOSTING: "FALSE"        # indispensable pour MinIO
+      GDAL_DISABLE_READDIR_ON_OPEN: EMPTY_DIR
+      CPL_VSIL_CURL_ALLOWED_EXTENSIONS: ".tif,.tiff"
+      TITILER_API_CORS_ORIGINS: "*"
+    ports:
+      - "8001:80"
+    depends_on:
+      minio:
+        condition: service_started
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # Service d'acces : comptes, demandes de telechargement, validation admin,
+  # liens temporaires. Protege les donnees restreintes (institutionnel + raster).
+  # -------------------------------------------------------------------------
+  access:
+    build:
+      context: ./docker
+      dockerfile: access.Dockerfile
+    container_name: cgn_access
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-cgn}:${POSTGRES_PASSWORD:-cgn_pass}@db:5432/${POSTGRES_DB:-cameroon}
+      JWT_SECRET: ${JWT_SECRET:-change_me_jwt_secret}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@geowakanda.cm}
+      # endpoint MinIO vu par le NAVIGATEUR (pour les liens de telechargement raster)
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-localhost:9000}
+      MINIO_USER: ${MINIO_USER:-cgnadmin}
+      MINIO_PASSWORD: ${MINIO_PASSWORD:-change_me_minio}
+      MINIO_SECURE: ${MINIO_SECURE:-false}
+    ports:
+      - "8002:80"
+    volumes:
+      - ./app/access:/app:ro      # code monte en direct (maintenance facile)
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    restart: unless-stopped
+
+  # -------------------------------------------------------------------------
+  # Loader : telecharge l'extrait OSM Cameroun et l'importe (osm2pgsql).
+  # Ne demarre PAS automatiquement (profil "tools").
+  # Lancement manuel : docker compose run --rm loader
+  # -------------------------------------------------------------------------
+  loader:
+    build:
+      context: ./docker
+      dockerfile: loader.Dockerfile
+    container_name: cgn_loader
+    profiles: ["tools"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cgn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cgn_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-cameroon}
+      PGHOST: db
+      GEOFABRIK_URL: ${GEOFABRIK_URL:-https://download.geofabrik.de/africa/cameroon-latest.osm.pbf}
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./sql:/sql:ro
+      - osmdata:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["bash", "/scripts/load-osm.sh"]
+
+  # -------------------------------------------------------------------------
+  # Sync : applique les differentiels OSM (mise a jour quasi-temps-reel).
+  # Lancement manuel ou planifie : docker compose run --rm sync
+  # -------------------------------------------------------------------------
+  sync:
+    build:
+      context: ./docker
+      dockerfile: loader.Dockerfile
+    container_name: cgn_sync
+    profiles: ["tools"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cgn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cgn_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-cameroon}
+      PGHOST: db
+    volumes:
+      - ./scripts:/scripts:ro
+      - osmdata:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["bash", "/scripts/sync-osm.sh"]
+
+  # -------------------------------------------------------------------------
+  # Ortho-loader : convertit une orthophoto GeoTIFF en COG, l'envoie dans
+  # MinIO et enregistre son emprise dans le catalogue PostGIS.
+  # Usage : docker compose run --rm ortho /data/in/mon_vol.tif "Nom du vol"
+  # (depose tes GeoTIFF dans le dossier ./ortho_in de ton PC)
+  # -------------------------------------------------------------------------
+  ortho:
+    build:
+      context: ./docker
+      dockerfile: cog-tools.Dockerfile
+    container_name: cgn_ortho
+    profiles: ["tools"]
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-cgn}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-cgn_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-cameroon}
+      PGHOST: db
+      MINIO_USER: ${MINIO_USER:-cgnadmin}
+      MINIO_PASSWORD: ${MINIO_PASSWORD:-change_me_minio}
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_BUCKET: ${MINIO_BUCKET:-orthophotos}
+    volumes:
+      - ./scripts:/scripts:ro
+      - ./sql:/sql:ro
+      - ./ortho_in:/data/in:ro          # tes GeoTIFF a importer
+      - orthotmp:/data/tmp
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+    entrypoint: ["bash", "/scripts/add-ortho.sh"]
+
+volumes:
+  pgdata:      # la base : c'est elle qu'on sauvegarde (pg_dump) et qu'on transporte
+  osmdata:     # cache du fichier .osm.pbf telecharge
+  miniodata:   # les orthophotos (COG) - stockage objet portable
+  orthotmp:    # espace temporaire de conversion COG
+  caddydata:   # certificats HTTPS et etat de la passerelle Caddy

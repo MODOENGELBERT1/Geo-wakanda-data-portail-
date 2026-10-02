@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GeoWakanda — Administration</title>
+<style>
+  :root{--bg:#0A1A24;--panel:#08161E;--panel2:#0E2730;--ink:#EAF6F1;--muted:#8FB1A8;--line:#1C3A44;--green:#2EC27E;--accent:#F0A202;--red:#e63946}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:17px;margin:0;font-weight:600}
+  header .right{margin-left:auto;display:flex;gap:12px;align-items:center;font-size:13px}
+  a{color:var(--green)}
+  main{max-width:1000px;margin:0 auto;padding:26px 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:20px}
+  h2{font-size:15px;margin:0 0 14px;font-weight:600}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:10px 12px;font-size:14px}
+  button{background:var(--green);color:#042016;border:none;border-radius:8px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer}
+  button.reject{background:var(--red);color:#fff}
+  button.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  .row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);margin-bottom:10px}
+  .row .main{flex:1}
+  .row .sub{color:var(--muted);font-size:12px;margin-top:3px}
+  .muted{color:var(--muted);font-size:13px}
+  .badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px}
+  .b-pending{background:#3a2f12;color:var(--accent)}.b-approved{background:#123a2a;color:var(--green)}.b-rejected{background:#3a1216;color:var(--red)}
+  .err{color:var(--red);font-size:13px;margin-top:10px}
+  .filters{display:flex;gap:8px;margin-bottom:14px}
+  .filters button{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  .filters button.active{background:var(--green);color:#042016}
+</style>
+</head>
+<body>
+<header>
+  <h1>GeoWakanda — Administration</h1>
+  <div class="right">
+    <a href="index.html">← Carte</a>
+    <span id="who" class="muted"></span>
+    <button id="logout" class="ghost" style="display:none">Déconnexion</button>
+  </div>
+</header>
+
+<main>
+  <div id="auth" class="card" style="max-width:440px;margin:40px auto">
+    <h2>Connexion administrateur</h2>
+    <label>Email</label><input id="email" type="email" placeholder="admin@geowakanda.cm">
+    <label>Mot de passe</label><input id="password" type="password" placeholder="••••••••">
+    <div style="margin-top:16px"><button id="login">Se connecter</button></div>
+    <div class="err" id="auth-err"></div>
+  </div>
+
+  <div id="app" style="display:none">
+    <div class="card">
+      <h2>Demandes de téléchargement</h2>
+      <div class="filters">
+        <button data-f="pending" class="active">En attente</button>
+        <button data-f="all">Toutes</button>
+      </div>
+      <div id="list"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const ACCESS = `${location.origin}/access`;
+const $ = id => document.getElementById(id);
+const token = () => localStorage.getItem('gw_token');
+let filter = 'pending';
+
+async function api(path, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  const t = token(); if(t) headers['Authorization']='Bearer '+t;
+  const r = await fetch(ACCESS+path, Object.assign({}, opts, {headers}));
+  if(!r.ok){ const e = await r.json().catch(()=>({detail:'Erreur'})); throw new Error(e.detail||('Erreur '+r.status)); }
+  return r.status===204 ? null : r.json();
+}
+
+$('login').onclick = async ()=>{
+  $('auth-err').textContent='';
+  try{
+    const res = await api('/auth/login', {method:'POST', body:JSON.stringify({email:$('email').value, password:$('password').value})});
+    if(res.role !== 'admin'){ $('auth-err').textContent = "Ce compte n'est pas administrateur."; return; }
+    localStorage.setItem('gw_token', res.access_token);
+    localStorage.setItem('gw_email', res.email);
+    localStorage.setItem('gw_role', res.role);
+    showApp();
+  }catch(e){ $('auth-err').textContent = e.message; }
+};
+$('logout').onclick = ()=>{ localStorage.removeItem('gw_token'); location.reload(); };
+
+document.querySelectorAll('.filters button').forEach(b=>{
+  b.onclick = ()=>{ filter=b.dataset.f; document.querySelectorAll('.filters button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); load(); };
+});
+
+function badge(s){const m={pending:['b-pending','En attente'],approved:['b-approved','Approuvée'],rejected:['b-rejected','Refusée']};const[c,t]=m[s]||['b-pending',s];return `<span class="badge ${c}">${t}</span>`;}
+
+async function decide(id, decision){
+  try{ await api(`/admin/requests/${id}/decision`, {method:'POST', body:JSON.stringify({decision})}); load(); }
+  catch(e){ alert(e.message); }
+}
+
+async function load(){
+  const box = $('list'); box.innerHTML = '<p class="muted">Chargement…</p>';
+  try{
+    const rs = await api('/admin/requests?status='+filter);
+    if(!rs.length){ box.innerHTML = '<p class="muted">Aucune demande.</p>'; return; }
+    box.innerHTML = '';
+    rs.forEach(r=>{
+      const el = document.createElement('div'); el.className='row';
+      let actions = '';
+      if(r.status==='pending'){
+        actions = `<button data-a="approve">Approuver</button> <button class="reject" data-a="reject">Refuser</button>`;
+      }
+      el.innerHTML = `<div class="main">
+          <div>${r.nom} <span class="muted">(${r.kind})</span> ${badge(r.status)}</div>
+          <div class="sub">${r.email} · ${r.reason||'(sans raison)'} · ${r.created_at.slice(0,16).replace('T',' ')}</div>
+        </div>${actions}`;
+      el.querySelectorAll('button[data-a]').forEach(btn=> btn.onclick = ()=>decide(r.id, btn.dataset.a));
+      box.appendChild(el);
+    });
+  }catch(e){ box.innerHTML = `<p class="muted">${e.message}</p>`; }
+}
+
+function showApp(){
+  $('auth').style.display='none'; $('app').style.display='block';
+  $('logout').style.display='inline-block';
+  $('who').textContent = localStorage.getItem('gw_email')+' (admin)';
+  load();
+}
+
+if(token() && localStorage.getItem('gw_role')==='admin') showApp();
+</script>
+</body>
+</html>

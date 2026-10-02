@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GeoWakanda — Espace données restreintes</title>
+<style>
+  :root{--bg:#0A1A24;--panel:#08161E;--panel2:#0E2730;--ink:#EAF6F1;--muted:#8FB1A8;--line:#1C3A44;--green:#2EC27E;--accent:#F0A202;--red:#e63946}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,Arial,sans-serif}
+  header{display:flex;align-items:center;gap:14px;padding:14px 22px;background:var(--panel);border-bottom:1px solid var(--line)}
+  header h1{font-size:17px;margin:0;font-weight:600}
+  header .right{margin-left:auto;display:flex;align-items:center;gap:12px;font-size:13px}
+  a{color:var(--green)}
+  main{max-width:960px;margin:0 auto;padding:26px 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:20px}
+  h2{font-size:15px;margin:0 0 14px;font-weight:600}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+  input,textarea{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:10px 12px;font-size:14px;font-family:inherit}
+  button{background:var(--green);color:#042016;border:none;border-radius:8px;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer}
+  button.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  button:hover{filter:brightness(1.08)}
+  .row{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel2);margin-bottom:10px}
+  .row .name{flex:1;font-size:14px}
+  .badge{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px}
+  .b-pending{background:#3a2f12;color:var(--accent)}
+  .b-approved{background:#123a2a;color:var(--green)}
+  .b-rejected{background:#3a1216;color:var(--red)}
+  .muted{color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:8px;margin-bottom:16px}
+  .tabs button{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+  .tabs button.active{background:var(--green);color:#042016;border-color:var(--green)}
+  .err{color:var(--red);font-size:13px;margin-top:10px;min-height:16px}
+  .reason{width:200px}
+</style>
+</head>
+<body>
+<header>
+  <h1>GeoWakanda — Espace données restreintes</h1>
+  <div class="right">
+    <a href="index.html">← Retour à la carte</a>
+    <span id="who" class="muted"></span>
+    <button id="logout" class="ghost" style="display:none">Déconnexion</button>
+  </div>
+</header>
+
+<main>
+  <!-- NON CONNECTE -->
+  <div id="auth" class="card" style="max-width:440px;margin:40px auto">
+    <div class="tabs">
+      <button id="tab-login" class="active">Connexion</button>
+      <button id="tab-register">Créer un compte</button>
+    </div>
+    <label>Email</label>
+    <input id="email" type="email" placeholder="vous@exemple.cm">
+    <label>Mot de passe</label>
+    <input id="password" type="password" placeholder="••••••••">
+    <div style="margin-top:16px"><button id="submit-auth">Se connecter</button></div>
+    <div class="err" id="auth-err"></div>
+  </div>
+
+  <!-- CONNECTE -->
+  <div id="app" style="display:none">
+    <div class="card">
+      <h2>Jeux de données restreints disponibles</h2>
+      <p class="muted">Ces données sont visibles sur la carte mais leur téléchargement nécessite une autorisation. Indique la raison de ta demande.</p>
+      <div id="datasets"></div>
+    </div>
+    <div class="card">
+      <h2>Mes demandes</h2>
+      <div id="requests"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const ACCESS = `${location.origin}/access`;
+let mode = 'login';
+const $ = id => document.getElementById(id);
+const token = () => localStorage.getItem('gw_token');
+
+function setTab(m){
+  mode = m;
+  $('tab-login').classList.toggle('active', m==='login');
+  $('tab-register').classList.toggle('active', m==='register');
+  $('submit-auth').textContent = m==='login' ? 'Se connecter' : 'Créer le compte';
+  $('auth-err').textContent = '';
+}
+$('tab-login').onclick = ()=>setTab('login');
+$('tab-register').onclick = ()=>setTab('register');
+
+async function api(path, opts={}){
+  const headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  const t = token();
+  if(t) headers['Authorization'] = 'Bearer '+t;
+  const r = await fetch(ACCESS+path, Object.assign({}, opts, {headers}));
+  if(!r.ok){ const e = await r.json().catch(()=>({detail:'Erreur'})); throw new Error(e.detail||('Erreur '+r.status)); }
+  return r.status===204 ? null : r.json();
+}
+
+$('submit-auth').onclick = async ()=>{
+  $('auth-err').textContent = '';
+  try{
+    const body = JSON.stringify({email:$('email').value, password:$('password').value});
+    const path = mode==='login' ? '/auth/login' : '/auth/register';
+    const res = await api(path, {method:'POST', body});
+    localStorage.setItem('gw_token', res.access_token);
+    localStorage.setItem('gw_email', res.email);
+    localStorage.setItem('gw_role', res.role);
+    showApp();
+  }catch(e){ $('auth-err').textContent = e.message; }
+};
+
+$('logout').onclick = ()=>{ localStorage.removeItem('gw_token'); location.reload(); };
+
+function badge(status){
+  const map = {pending:['b-pending','En attente'], approved:['b-approved','Approuvée'], rejected:['b-rejected','Refusée']};
+  const [cls,txt] = map[status]||['b-pending',status];
+  return `<span class="badge ${cls}">${txt}</span>`;
+}
+
+async function loadDatasets(){
+  const box = $('datasets'); box.innerHTML = '<p class="muted">Chargement…</p>';
+  try{
+    const ds = await api('/datasets');
+    if(!ds.length){ box.innerHTML = '<p class="muted">Aucun jeu restreint pour le moment.</p>'; return; }
+    box.innerHTML = '';
+    ds.forEach(d=>{
+      const el = document.createElement('div'); el.className='row';
+      el.style.flexDirection='column'; el.style.alignItems='stretch';
+      const meta=[];
+      if(d.institut)      meta.push('Source : '+d.institut);
+      if(d.theme)         meta.push('Thème : '+d.theme);
+      if(d.date_collecte) meta.push('Collecte : '+d.date_collecte);
+      if(d.format)        meta.push('Format : '+d.format);
+      if(d.resolution_cm) meta.push('Résolution : '+d.resolution_cm+' cm');
+      if(d.contact)       meta.push('Contact : '+d.contact);
+      el.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="name">${d.nom}</span>
+          <span class="muted" style="font-size:11px">${d.kind}${d.niveau?(' · '+d.niveau):''}</span>
+        </div>
+        ${meta.length?`<div class="muted" style="font-size:12px;margin:7px 0 9px;line-height:1.55">${meta.join(' · ')}</div>`:''}
+        <div style="display:flex;gap:8px">
+          <input class="reason" placeholder="Raison / usage" style="flex:1">
+          <button>Demander</button>
+        </div>`;
+      el.querySelector('button').onclick = async (ev)=>{
+        ev.target.disabled = true;
+        try{
+          await api('/requests', {method:'POST', body:JSON.stringify({
+            dataset_kind:d.kind, dataset_ref:d.ref, reason:el.querySelector('.reason').value
+          })});
+          loadRequests();
+          ev.target.textContent = 'Demandé ✓';
+        }catch(e){ alert(e.message); ev.target.disabled=false; }
+      };
+      box.appendChild(el);
+    });
+  }catch(e){ box.innerHTML = `<p class="muted">${e.message}</p>`; }
+}
+
+async function loadRequests(){
+  const box = $('requests'); box.innerHTML = '<p class="muted">Chargement…</p>';
+  try{
+    const rs = await api('/requests/mine');
+    if(!rs.length){ box.innerHTML = '<p class="muted">Aucune demande pour l’instant.</p>'; return; }
+    box.innerHTML = '';
+    rs.forEach(r=>{
+      const el = document.createElement('div'); el.className='row';
+      let action = '';
+      if(r.status==='approved' && r.download_url){
+        action = `<a href="${ACCESS}${r.download_url}"><button>Télécharger</button></a>`;
+      }
+      el.innerHTML = `<span class="name">${r.nom} <span class="muted">(${r.kind})</span></span>
+                      ${badge(r.status)} ${action}`;
+      box.appendChild(el);
+    });
+  }catch(e){ box.innerHTML = `<p class="muted">${e.message}</p>`; }
+}
+
+function showApp(){
+  $('auth').style.display = 'none';
+  $('app').style.display = 'block';
+  $('logout').style.display = 'inline-block';
+  const email = localStorage.getItem('gw_email'), role = localStorage.getItem('gw_role');
+  $('who').textContent = email + (role==='admin' ? ' (admin)' : '');
+  loadDatasets();
+  loadRequests();
+}
+
+// au chargement : si un jeton existe, on tente l'espace connecte
+if(token()) showApp();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+# =============================================================================
+#  Passerelle unique du Geo Wakanda Data Portal
+#  Une seule porte d'entree qui sert la plateforme ET route vers les services.
+#  -> en local : http://localhost:8080
+#  -> en ligne : remplace ":80" par ton domaine (ex. portal.geowakanda.cm)
+#     et Caddy obtient automatiquement un certificat HTTPS gratuit.
+# =============================================================================
+:80 {
+    encode gzip
+
+    # API vecteur (TiPg) — c'est aussi ce que consomme Urban Sanity
+    handle_path /api/* {
+        reverse_proxy api:8000
+    }
+
+    # Tuiles raster (TiTiler)
+    handle_path /tiles/* {
+        reverse_proxy titiler:80
+    }
+
+    # Service d'acces (comptes, demandes, validation, export, telechargements)
+    handle_path /access/* {
+        reverse_proxy access:80
+    }
+
+    # La plateforme web (fichiers statiques)
+    handle {
+        root * /srv
+        file_server
+    }
+}
