@@ -402,12 +402,62 @@ def export_open(layer: str, fmt: str = "gpkg"):
                         background=BackgroundTask(shutil.rmtree, tmp, True))
 
 
-# --- Export d'une ZONE dessinee (AOI) : donnees OSM ouvertes decoupees --------
-# L'utilisateur dessine un rectangle sur la carte ; on exporte toutes les couches
-# OUVERTES (schema catalog) decoupees a cette emprise, dans le format choisi.
-# bbox attendu : xmin,ymin,xmax,ymax en lon/lat (EPSG:4326).
+# --- Export d'une ZONE : donnees OSM ouvertes decoupees a une emprise ----------
+# Deux facons de definir l'emprise :
+#   * /export/aoi  : un rectangle dessine sur la carte (bbox, decoupe rapide -spat)
+#   * /export/clip : un contour GeoJSON importe (decoupe EXACTE au polygone -clipsrc)
+# Les deux exportent les couches OUVERTES (schema catalog) dans le format choisi.
 AOI_DEFAULT_LAYERS = ["batiments", "routes", "cours_eau", "limites_admin", "lieux"]
 AOI_EXCLUDE = {"orthophotos_couverture", "pays"}
+
+
+def _resolve_layers(layers: str):
+    """Couches ouvertes reellement presentes, filtrees sur la demande."""
+    with db() as conn, conn.cursor() as cur:
+        cur.execute("""SELECT table_name FROM information_schema.tables
+                       WHERE table_schema='catalog'""")
+        present = {t for (t,) in cur.fetchall()}
+    wanted = [l.strip() for l in layers.split(",") if l.strip()] or AOI_DEFAULT_LAYERS
+    sel = [l for l in wanted if l in present and l not in AOI_EXCLUDE]
+    if not sel:
+        raise HTTPException(404, "Aucune couche ouverte a exporter dans cette zone")
+    return sel
+
+
+def _pg_conn_str():
+    u = urlparse(DATABASE_URL)
+    return (f"host={u.hostname} port={u.port or 5432} dbname={u.path.lstrip('/')} "
+            f"user={u.username} password={u.password}")
+
+
+def _run_export(sel, clip_args, fmt, tmp):
+    """Lance ogr2ogr pour chaque couche avec l'argument de decoupe (clip_args),
+    assemble le fichier de sortie et renvoie la reponse HTTP."""
+    pg = _pg_conn_str()
+    if fmt == "gpkg":
+        out = os.path.join(tmp, "zone_osm.gpkg")
+        for i, lyr in enumerate(sel):
+            cmd = ["ogr2ogr"] + (["-update", "-append"] if i else []) + \
+                  ["-f", "GPKG", out, "PG:" + pg, f"catalog.{lyr}", "-nln", lyr] + clip_args
+            subprocess.run(cmd, check=True)
+        return FileResponse(out, media_type="application/geopackage+sqlite3",
+                            filename="zone_osm.gpkg",
+                            background=BackgroundTask(shutil.rmtree, tmp, True))
+
+    outdir = os.path.join(tmp, "zone_osm"); os.makedirs(outdir, exist_ok=True)
+    driver, ext = ("ESRI Shapefile", "shp") if fmt == "shp" else ("GeoJSON", "geojson")
+    for lyr in sel:
+        subprocess.run(["ogr2ogr", "-f", driver,
+                        os.path.join(outdir, f"{lyr}.{ext}"),
+                        "PG:" + pg, f"catalog.{lyr}"] + clip_args, check=True)
+    path = os.path.join(tmp, "zone_osm.zip")
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        for f in os.listdir(outdir):
+            z.write(os.path.join(outdir, f), f)
+    return FileResponse(path, media_type="application/zip",
+                        filename=f"zone_osm_{ext}.zip",
+                        background=BackgroundTask(shutil.rmtree, tmp, True))
+
 
 @app.get("/export/aoi")
 def export_aoi(bbox: str, fmt: str = "gpkg", layers: str = ""):
@@ -420,50 +470,54 @@ def export_aoi(bbox: str, fmt: str = "gpkg", layers: str = ""):
         raise HTTPException(400, "bbox invalide (attendu xmin,ymin,xmax,ymax)")
     if not (xmin < xmax and ymin < ymax):
         raise HTTPException(400, "bbox invalide (xmin<xmax et ymin<ymax)")
-
-    # Couches ouvertes reellement presentes, filtrees sur la demande
-    with db() as conn, conn.cursor() as cur:
-        cur.execute("""SELECT table_name FROM information_schema.tables
-                       WHERE table_schema='catalog'""")
-        present = {t for (t,) in cur.fetchall()}
-    wanted = [l.strip() for l in layers.split(",") if l.strip()] or AOI_DEFAULT_LAYERS
-    sel = [l for l in wanted if l in present and l not in AOI_EXCLUDE]
-    if not sel:
-        raise HTTPException(404, "Aucune couche ouverte a exporter dans cette zone")
-
-    u = urlparse(DATABASE_URL)
-    pg = (f"host={u.hostname} port={u.port or 5432} dbname={u.path.lstrip('/')} "
-          f"user={u.username} password={u.password}")
-    spat = ["-spat", str(xmin), str(ymin), str(xmax), str(ymax)]
+    sel = _resolve_layers(layers)
+    clip = ["-spat", str(xmin), str(ymin), str(xmax), str(ymax)]
     tmp = tempfile.mkdtemp(prefix="aoi_")
     try:
-        if fmt == "gpkg":
-            out = os.path.join(tmp, "zone_osm.gpkg")
-            for i, lyr in enumerate(sel):
-                base = ["ogr2ogr"] + (["-update", "-append"] if i else []) + \
-                       ["-f", "GPKG", out, "PG:" + pg, f"catalog.{lyr}", "-nln", lyr] + spat
-                subprocess.run(base, check=True)
-            return FileResponse(out, media_type="application/geopackage+sqlite3",
-                                filename="zone_osm.gpkg",
-                                background=BackgroundTask(shutil.rmtree, tmp, True))
-
-        # shp / geojson : un fichier par couche, zippes ensemble
-        outdir = os.path.join(tmp, "zone_osm"); os.makedirs(outdir, exist_ok=True)
-        driver, ext = ("ESRI Shapefile", "shp") if fmt == "shp" else ("GeoJSON", "geojson")
-        for lyr in sel:
-            subprocess.run(["ogr2ogr", "-f", driver,
-                            os.path.join(outdir, f"{lyr}.{ext}"),
-                            "PG:" + pg, f"catalog.{lyr}"] + spat, check=True)
-        path = os.path.join(tmp, "zone_osm.zip")
-        with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
-            for f in os.listdir(outdir):
-                z.write(os.path.join(outdir, f), f)
-        return FileResponse(path, media_type="application/zip",
-                            filename=f"zone_osm_{ext}.zip",
-                            background=BackgroundTask(shutil.rmtree, tmp, True))
+        return _run_export(sel, clip, fmt, tmp)
     except subprocess.CalledProcessError:
         shutil.rmtree(tmp, ignore_errors=True)
         raise HTTPException(500, "Echec de l'export de la zone")
+
+
+class ClipReq(BaseModel):
+    geojson: dict           # geometrie, Feature ou FeatureCollection (EPSG:4326)
+    fmt: str = "gpkg"
+    layers: str = ""
+
+@app.post("/export/clip")
+def export_clip(req: ClipReq):
+    """Decoupe EXACTE des couches ouvertes sur un contour GeoJSON importe."""
+    import json as _json
+    fmt = req.fmt.lower()
+    if fmt not in ("gpkg", "shp", "geojson"):
+        raise HTTPException(400, "Format non supporte (gpkg, shp, geojson)")
+    gj = req.geojson or {}
+    t = gj.get("type")
+    if t == "FeatureCollection":
+        fc = gj
+    elif t == "Feature":
+        fc = {"type": "FeatureCollection", "features": [gj]}
+    elif t in ("Polygon", "MultiPolygon"):
+        fc = {"type": "FeatureCollection",
+              "features": [{"type": "Feature", "properties": {}, "geometry": gj}]}
+    else:
+        raise HTTPException(400, "GeoJSON invalide")
+    types = [((f or {}).get("geometry") or {}).get("type") for f in fc.get("features", [])]
+    if not any(x in ("Polygon", "MultiPolygon") for x in types):
+        raise HTTPException(400, "Le contour doit contenir un polygone")
+
+    sel = _resolve_layers(req.layers)
+    tmp = tempfile.mkdtemp(prefix="clip_")
+    clip_file = os.path.join(tmp, "clip.geojson")
+    with open(clip_file, "w") as fh:
+        _json.dump(fc, fh)
+    clip = ["-clipsrc", clip_file]
+    try:
+        return _run_export(sel, clip, fmt, tmp)
+    except subprocess.CalledProcessError:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise HTTPException(500, "Echec du decoupage sur le contour")
 
 
 def _download_raster(ortho_id: str):

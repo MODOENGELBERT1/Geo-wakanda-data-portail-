@@ -12,125 +12,129 @@
 
   <style>
     :root{
-      --bg:#0C1C28; --panel:#0F2635; --panel2:#15344A; --header:#0A1722;
-      --ink:#EAF4F1; --muted:#8CA7A0; --line:#1E3F52;
+      --bg:#0C1C28; --header:#0A1722;
       --gold:#E6A817; --blue:#3DA5D9; --green:#2EC27E; --red:#C0392B;
-      /* kenté */
       --k1:#C0392B; --k2:#E6A817; --k3:#1B7F5A; --k4:#2E7DA6;
+      /* panneau clair */
+      --ink:#13241D; --muted:#5F7A73; --line:#E4EAE7; --soft:#F3F6F4; --card:#FFFFFF;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;height:100%;font-family:'Manrope',system-ui,Arial,sans-serif;color:var(--ink);background:var(--bg)}
-    /* bordures kenté gauche/droite */
-    body::before,body::after{content:'';position:fixed;top:0;bottom:0;width:9px;z-index:60;
+    html,body{margin:0;height:100%;font-family:'Manrope',system-ui,Arial,sans-serif;color:#EAF4F1;background:var(--bg)}
+    body::before,body::after{content:'';position:fixed;top:0;bottom:0;width:8px;z-index:60;
       background:repeating-linear-gradient(180deg,var(--k1) 0 16px,var(--k2) 16px 32px,var(--k3) 32px 48px,var(--k4) 48px 64px,#0A1722 64px 70px)}
     body::before{left:0} body::after{right:0}
 
-    #app{display:grid;grid-template-columns:1fr 346px;grid-template-rows:60px 6px 1fr;height:100vh;margin:0 9px}
+    #app{display:grid;grid-template-columns:372px 1fr;grid-template-rows:58px 5px 1fr;height:100vh;margin:0 8px}
 
     /* ---------- Header ---------- */
-    header{grid-column:1/3;display:flex;align-items:center;gap:14px;padding:0 20px;background:var(--header);z-index:30}
-    .badge{width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
-    .brand{line-height:1.05}
-    .brand .k{font-size:10.5px;letter-spacing:0.18em;color:var(--muted);text-transform:uppercase}
-    .brand .t{font-family:'Space Grotesk',sans-serif;font-size:21px;font-weight:700}
+    header{grid-column:1/3;display:flex;align-items:center;gap:13px;padding:0 18px;background:var(--header);z-index:30}
+    .badge{width:40px;height:40px;border-radius:11px;background:#fff;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+    .brand .t{font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;line-height:1}
     .brand .t span{color:var(--gold)}
-    .brand .d{font-size:10px;letter-spacing:0.22em;color:var(--gold);text-transform:uppercase;margin-top:1px}
-    header .right{margin-left:auto;display:flex;align-items:center;gap:10px}
-    .chip{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:5px 9px;letter-spacing:0.04em}
-    .seg{display:flex;border:1px solid var(--line);border-radius:20px;overflow:hidden}
-    .seg button{border:none;background:transparent;color:var(--muted);font-size:12px;padding:6px 11px;cursor:pointer;font-weight:600}
-    .seg button.active{background:var(--gold);color:#201500}
-    .navlink{font-size:13px;color:var(--ink);text-decoration:none;padding:7px 11px;border-radius:8px}
-    .navlink:hover{background:var(--panel2)}
-    .account{display:flex;align-items:center;gap:8px;color:var(--ink);text-decoration:none;font-size:13px}
-    .avatar{width:30px;height:30px;border-radius:50%;background:var(--gold);color:#201500;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
-
+    header .right{margin-left:auto;display:flex;align-items:center;gap:8px}
+    .navlink{font-size:13px;color:#EAF4F1;text-decoration:none;padding:7px 11px;border-radius:8px}
+    .navlink:hover{background:#15344A}
+    .account{display:flex;align-items:center;gap:8px;color:#EAF4F1;text-decoration:none;font-size:13px;padding:5px 9px;border-radius:8px}
+    .account:hover{background:#15344A}
+    .avatar{width:29px;height:29px;border-radius:50%;background:var(--gold);color:#201500;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
     .kente-h{grid-column:1/3;background:repeating-linear-gradient(90deg,var(--k1) 0 18px,var(--k2) 18px 36px,var(--k3) 36px 54px,var(--k4) 54px 72px)}
 
-    /* ---------- Map ---------- */
-    .mapwrap{position:relative;overflow:hidden}
-    #map{position:absolute;inset:0}
-    .searchbar{position:absolute;top:16px;left:16px;z-index:20;width:340px;max-width:calc(100% - 32px)}
-    .searchbar .box{display:flex;align-items:center;gap:10px;background:#0F2635;border:1px solid var(--line);border-radius:26px;box-shadow:0 2px 14px rgba(0,0,0,0.35);padding:11px 16px}
-    .searchbar input{border:none;outline:none;flex:1;font-size:14px;color:var(--ink);background:transparent}
-    .searchbar input::placeholder{color:var(--muted)}
-    .searchbar .box svg{color:var(--muted)}
-    .results{background:#0F2635;border:1px solid var(--line);border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,0.4);margin-top:8px;overflow:hidden;display:none}
-    .results div{padding:10px 16px;font-size:13.5px;cursor:pointer;border-bottom:1px solid var(--line)}
-    .results div:last-child{border-bottom:none}
-    .results div:hover{background:var(--panel2)}
-    .results .ty{color:var(--muted);font-size:11.5px}
-
-    .coord{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(10,23,34,0.85);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums;letter-spacing:0.03em}
-    .basemap{position:absolute;bottom:16px;left:16px;z-index:20;background:#0F2635;border:1px solid var(--line);border-radius:10px;padding:7px 10px;display:flex;align-items:center;gap:8px}
-    .basemap label{font-size:11px;color:var(--muted)}
-    .basemap select{border:none;outline:none;font-size:13px;color:var(--ink);background:transparent;font-family:inherit;cursor:pointer}
-    .basemap select option{color:#111}
-    .africa{position:absolute;right:16px;bottom:48px;z-index:15;opacity:0.16;pointer-events:none}
-
-    /* ---------- Outil : dessiner une zone + telecharger ---------- */
-    .tool{position:absolute;top:16px;right:16px;z-index:25;display:flex;flex-direction:column;gap:9px;align-items:flex-end;max-width:calc(100% - 32px)}
-    .tool>button{background:#0F2635;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:9px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 14px rgba(0,0,0,.35);display:flex;align-items:center;gap:7px}
-    .tool>button:hover{border-color:var(--gold);color:var(--gold)}
-    .tool>button.active{background:var(--gold);color:#201500;border-color:var(--gold)}
-    .aoi-card{background:#0F2635;border:1px solid var(--line);border-radius:12px;padding:14px;width:258px;box-shadow:0 6px 22px rgba(0,0,0,.45);display:none}
-    .aoi-card h4{margin:0 0 5px;font-size:13px;font-family:'Space Grotesk',sans-serif;letter-spacing:.03em}
-    .aoi-card p{margin:0 0 11px;font-size:11.5px;color:var(--muted);line-height:1.55}
-    .aoi-card label{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
-    .aoi-card select{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:9px;font-size:13px;font-family:inherit;margin-bottom:11px;cursor:pointer}
-    .aoi-card select option{color:#111}
-    .aoi-card .btns{display:flex;gap:8px}
-    .aoi-card .dl{flex:1;background:var(--gold);color:#201500;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:12.5px;cursor:pointer;text-decoration:none;text-align:center}
-    .aoi-card .dl:hover{filter:brightness(1.07)}
-    .aoi-card .clear{background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:8px;padding:10px 12px;font-size:12.5px;cursor:pointer}
-    .aoi-card .clear:hover{color:var(--ink)}
-    .aoi-cats{max-height:134px;overflow-y:auto;margin-bottom:11px;border:1px solid var(--line);border-radius:8px;padding:5px}
-    .aoi-cats .head{display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:3px 6px 5px}
-    .aoi-cats .head a{color:var(--gold);cursor:pointer;text-decoration:none}
-    .aoi-cat{display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:12.5px;cursor:pointer;border-radius:6px}
-    .aoi-cat:hover{background:var(--panel2)}
-    .aoi-cat input{width:15px;height:15px;accent-color:var(--gold)}
-    .aoi-cat span{text-transform:capitalize}
-    .aoi-empty{font-size:11.5px;color:var(--muted);line-height:1.5;padding:4px 2px}
-
-    /* ---------- Panneau permanent (droite) ---------- */
-    /* panneau en clair (plus lisible), carte et en-tete restent sombres */
-    .panel{--ink:#14241D;--muted:#5F7A73;--line:#E3E8E5;--panel2:#F3F6F4;--panel:#FFFFFF;
-      background:#FFFFFF;color:#14241D;border-left:1px solid #D9E2DD;overflow-y:auto;padding:18px}
-    .panel .ph{display:flex;align-items:center;margin-bottom:4px}
-    .panel h2{font-family:'Space Grotesk',sans-serif;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;margin:0;color:var(--ink)}
-    .panel .done{margin-left:auto;font-size:11px;color:var(--gold);font-weight:600}
-    .panel .hint{font-size:12px;color:var(--muted);margin:0 0 14px}
-    .total{background:var(--panel2);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:16px}
-    .total .n{font-family:'Space Grotesk',sans-serif;font-size:25px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+    /* ---------- Panneau thématique (gauche, clair) ---------- */
+    .panel{background:var(--card);color:var(--ink);border-right:1px solid #D6DFDA;overflow-y:auto;padding:16px 15px 20px}
+    .tagline{font-size:12px;color:var(--muted);line-height:1.5;margin:0 0 14px}
+    .total{display:flex;align-items:center;gap:12px;background:var(--soft);border:1px solid var(--line);border-left:3px solid var(--gold);border-radius:11px;padding:12px 14px;margin-bottom:12px}
+    .total .n{font-family:'Space Grotesk',sans-serif;font-size:24px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
     .total .l{font-size:11.5px;color:var(--muted);margin-top:3px}
-    .sec{font-family:'Space Grotesk',sans-serif;font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 8px;font-weight:600}
-    .layer{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;background:var(--panel2)}
+    .fresh{font-size:11.5px;color:#0E6E63;background:#EAF4F1;border:1px solid #CDE4DC;border-radius:8px;padding:7px 10px;margin-bottom:14px;display:none}
+
+    .sectitle{font-family:'Space Grotesk',sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:4px 2px 10px;font-weight:600}
+
+    /* accordéon thématique */
+    .theme{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--card)}
+    .theme-h{width:100%;display:flex;align-items:center;gap:11px;padding:12px 13px;background:none;border:none;cursor:pointer;font-family:inherit;color:var(--ink);text-align:left}
+    .theme-h:hover{background:var(--soft)}
+    .theme-h .th-ic{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;color:#fff}
+    .theme-h .th-ic svg{width:19px;height:19px}
+    .theme-h .th-name{flex:1;font-size:14px;font-weight:600;line-height:1.15}
+    .theme-h .th-count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+    .theme-h .chev{width:16px;height:16px;color:var(--muted);transition:transform .18s ease;flex:0 0 auto}
+    .theme.open .chev{transform:rotate(180deg)}
+    .theme-b{display:none;padding:4px 11px 12px}
+    .theme.open .theme-b{display:block}
+
+    .layer{display:flex;align-items:center;gap:10px;padding:8px 9px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;background:var(--soft)}
     .layer input[type=checkbox]{width:16px;height:16px;accent-color:var(--gold);flex:0 0 auto}
-    .layer .sw{width:12px;height:12px;border-radius:4px;flex:0 0 auto}
+    .layer .name{flex:1;font-size:13px;text-transform:capitalize}
+    .layer .count{font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px}
+    .layer .count.loading{color:var(--muted);font-weight:400;font-size:11px}
     .ic{display:inline-flex;align-items:center;justify-content:center;border-radius:7px;flex:0 0 auto}
     .ic svg{display:block}
     .layer .ic{width:26px;height:26px;background:color-mix(in srgb,currentColor 15%,transparent)}
     .layer .ic svg{width:16px;height:16px}
-    .aoi-cat .ic{width:21px;height:21px;background:color-mix(in srgb,currentColor 16%,transparent)}
-    .aoi-cat .ic svg{width:14px;height:14px}
-    .layer .name{flex:1;font-size:13px}
-    .layer .count{font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px}
-    .layer .count.loading{color:var(--muted);font-weight:400;font-size:11px}
     .dlmenu{position:relative}
     .dlmenu summary{list-style:none;cursor:pointer;color:var(--muted);font-size:15px}
     .dlmenu summary::-webkit-details-marker{display:none}
     .dlmenu summary:hover{color:var(--gold)}
-    .dlmenu .menu{position:absolute;right:0;top:22px;z-index:5;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,0.18);padding:6px;min-width:150px}
+    .dlmenu .menu{position:absolute;right:0;top:22px;z-index:5;background:var(--card);border:1px solid var(--line);border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.18);padding:6px;min-width:150px}
     .dlmenu .menu a{display:block;padding:7px 10px;font-size:12.5px;color:var(--ink);text-decoration:none;border-radius:6px}
-    .dlmenu .menu a:hover{background:var(--panel2)}
+    .dlmenu .menu a:hover{background:var(--soft)}
     .dlmenu .menu .h{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding:4px 10px}
     .opacity input{flex:1;accent-color:var(--gold)}
     .locked{border-style:dashed;border-color:#E6CFA6;background:#FDF8EF;text-decoration:none;color:inherit}
     .badge2{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;background:var(--gold);color:#201500}
-    .fresh{font-size:11.5px;color:#0E6E63;background:#EAF4F1;border:1px solid #CDE4DC;border-radius:7px;padding:6px 9px;margin-bottom:14px;display:none}
+    .hint{font-size:12px;color:var(--muted);line-height:1.5}
     .powered{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:11.5px;color:var(--muted);display:flex;align-items:center;gap:5px}
     .powered .heart{color:var(--red)}
+
+    /* ---------- Carte ---------- */
+    .mapwrap{position:relative;overflow:hidden}
+    #map{position:absolute;inset:0}
+    .searchbar{position:absolute;top:15px;left:15px;z-index:20;width:330px;max-width:calc(100% - 30px)}
+    .searchbar .box{display:flex;align-items:center;gap:10px;background:#0F2635;border:1px solid #1E3F52;border-radius:26px;box-shadow:0 2px 14px rgba(0,0,0,.35);padding:10px 15px}
+    .searchbar input{border:none;outline:none;flex:1;font-size:14px;color:#EAF4F1;background:transparent}
+    .searchbar input::placeholder{color:#8CA7A0}
+    .searchbar .box svg{color:#8CA7A0}
+    .results{background:#0F2635;border:1px solid #1E3F52;border-radius:14px;box-shadow:0 6px 20px rgba(0,0,0,.4);margin-top:8px;overflow:hidden;display:none}
+    .results div{padding:10px 15px;font-size:13.5px;cursor:pointer;border-bottom:1px solid #1E3F52;color:#EAF4F1}
+    .results div:last-child{border-bottom:none}
+    .results div:hover{background:#15344A}
+    .results .ty{color:#8CA7A0;font-size:11.5px}
+
+    .coord{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(10,23,34,.85);border:1px solid #1E3F52;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums}
+    .basemap{position:absolute;bottom:15px;left:15px;z-index:20;background:#0F2635;border:1px solid #1E3F52;border-radius:10px;padding:7px 10px;display:flex;align-items:center;gap:8px}
+    .basemap label{font-size:11px;color:#8CA7A0}
+    .basemap select{border:none;outline:none;font-size:13px;color:#EAF4F1;background:transparent;font-family:inherit;cursor:pointer}
+    .basemap select option{color:#111}
+
+    /* outil télécharger */
+    .tool{position:absolute;top:15px;right:15px;z-index:25;display:flex;flex-direction:column;gap:9px;align-items:flex-end;max-width:calc(100% - 30px)}
+    .tool>button{background:#0F2635;border:1px solid #1E3F52;color:#EAF4F1;border-radius:10px;padding:9px 13px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 14px rgba(0,0,0,.35);display:flex;align-items:center;gap:7px}
+    .tool>button:hover{border-color:var(--gold);color:var(--gold)}
+    .tool>button.active{background:var(--gold);color:#201500;border-color:var(--gold)}
+    .aoi-card{background:#0F2635;border:1px solid #1E3F52;color:#EAF4F1;border-radius:12px;padding:14px;width:264px;box-shadow:0 6px 22px rgba(0,0,0,.45);display:none}
+    .aoi-card h4{margin:0 0 5px;font-size:13px;font-family:'Space Grotesk',sans-serif;letter-spacing:.03em}
+    .aoi-card p{margin:0 0 11px;font-size:11.5px;color:#8CA7A0;line-height:1.55}
+    .aoi-card label{font-size:10.5px;color:#8CA7A0;text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px}
+    .aoi-card select{width:100%;background:#15344A;border:1px solid #1E3F52;color:#EAF4F1;border-radius:8px;padding:9px;font-size:13px;font-family:inherit;margin-bottom:11px;cursor:pointer}
+    .aoi-card select option{color:#111}
+    .aoi-cats{max-height:134px;overflow-y:auto;margin-bottom:11px;border:1px solid #1E3F52;border-radius:8px;padding:5px}
+    .aoi-cats .head{display:flex;justify-content:space-between;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#8CA7A0;padding:3px 6px 5px}
+    .aoi-cats .head a{color:var(--gold);cursor:pointer;text-decoration:none}
+    .aoi-cat{display:flex;align-items:center;gap:8px;padding:5px 6px;font-size:12.5px;cursor:pointer;border-radius:6px}
+    .aoi-cat:hover{background:#15344A}
+    .aoi-cat input{width:15px;height:15px;accent-color:var(--gold)}
+    .aoi-cat span{text-transform:capitalize}
+    .aoi-cat .ic{width:21px;height:21px;background:color-mix(in srgb,currentColor 18%,transparent)}
+    .aoi-cat .ic svg{width:14px;height:14px}
+    .aoi-empty{font-size:11.5px;color:#8CA7A0;line-height:1.5;padding:4px 2px}
+    .aoi-card .btns{display:flex;gap:8px}
+    .aoi-card .dl{flex:1;background:var(--gold);color:#201500;border:none;border-radius:8px;padding:10px;font-weight:700;font-size:12.5px;cursor:pointer;text-align:center;font-family:inherit}
+    .aoi-card .dl:hover{filter:brightness(1.07)}
+    .aoi-card .dl:disabled{opacity:.5;cursor:default}
+    .aoi-card .clear{background:transparent;border:1px solid #1E3F52;color:#8CA7A0;border-radius:8px;padding:10px 12px;font-size:12.5px;cursor:pointer}
+    .aoi-card .clear:hover{color:#EAF4F1}
+
+    @media(max-width:820px){#app{grid-template-columns:1fr;grid-template-rows:58px 5px 44vh 1fr}.panel{border-right:none;border-bottom:1px solid #D6DFDA}}
   </style>
 </head>
 <body>
@@ -138,14 +142,12 @@
     <!-- ===== HEADER ===== -->
     <header>
       <div class="badge" title="Geo Wakanda">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0E6E63" stroke-width="1.7">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#0E6E63" stroke-width="1.7">
           <circle cx="12" cy="12" r="9"></circle>
           <path d="M3 12h18 M12 3c3 3 3 15 0 18 M12 3c-3 3 -3 15 0 18"></path>
         </svg>
       </div>
-      <div class="brand">
-        <div class="t">Geo<span>Wakanda</span> Data Portal</div>
-      </div>
+      <div class="brand"><div class="t">Geo<span>Wakanda</span> Data Portal</div></div>
       <div class="right">
         <a class="navlink" href="portal.html">Données restreintes</a>
         <a class="account" href="admin.html"><span class="avatar">GW</span>Administrateur</a>
@@ -153,7 +155,61 @@
     </header>
     <div class="kente-h"></div>
 
-    <!-- ===== MAP ===== -->
+    <!-- ===== PANNEAU THÉMATIQUE (gauche) ===== -->
+    <aside class="panel">
+      <p class="tagline">Nœud national de données géographiques — données OSM ouvertes, données institutionnelles et orthophotos sous accès, centrées sur le Cameroun.</p>
+      <div class="total"><div><div class="n" id="total-count">—</div><div class="l">objets géographiques dans le nœud</div></div></div>
+      <div class="fresh" id="fresh"></div>
+
+      <div class="sectitle">Thématiques</div>
+
+      <section class="theme open" id="th-osm">
+        <button class="theme-h" data-th="th-osm">
+          <span class="th-ic" style="background:#1B7F5A"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z M3 12.5l9 5 9-5 M3 16.5l9 5 9-5"/></svg></span>
+          <span class="th-name">Données ouvertes · OSM</span>
+          <span class="th-count" id="osm-count">…</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="theme-b"><div id="layers"><div class="hint">Chargement…</div></div></div>
+      </section>
+
+      <section class="theme" id="th-ortho">
+        <button class="theme-h" data-th="th-ortho">
+          <span class="th-ic" style="background:#E07A5F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M4 17.5l4.5-3.5 3.5 2.6 3-2.2 5 3.6"/></svg></span>
+          <span class="th-name">Orthophotos · Raster</span>
+          <span class="th-count" id="ortho-count"></span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="theme-b">
+          <div id="orthos"></div>
+          <div class="layer opacity" id="ortho-opacity-row" style="display:none">
+            <span class="name">Opacité</span>
+            <input type="range" id="ortho-opacity" min="0" max="100" value="80">
+          </div>
+        </div>
+      </section>
+
+      <section class="theme" id="th-inst">
+        <button class="theme-h" data-th="th-inst">
+          <span class="th-ic" style="background:#2E7DA6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18 M5 21V9l7-4 7 4v12 M9 13h0 M12 13h0 M15 13h0 M9 17h0 M12 17h0 M15 17h0"/></svg></span>
+          <span class="th-name">Données institutionnelles</span>
+          <span class="th-count">accès</span>
+          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <div class="theme-b">
+          <a class="layer locked" href="portal.html">
+            <span class="ic" style="color:#E6A817"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+            <span class="name">Projets institutionnels <span class="badge2">RESTREINT</span></span>
+            <span style="color:var(--muted);font-size:12px">Demander →</span>
+          </a>
+          <p class="hint" style="margin:8px 2px 0">Visibles sur la carte, téléchargeables après demande validée par un administrateur.</p>
+        </div>
+      </section>
+
+      <div class="powered">Powered by Geo Wakanda <span class="heart">&#10084;</span></div>
+    </aside>
+
+    <!-- ===== CARTE ===== -->
     <div class="mapwrap">
       <div id="map"></div>
 
@@ -165,14 +221,18 @@
         <div class="results" id="results"></div>
       </div>
 
-      <!-- Outil : dessiner une zone et telecharger les donnees OSM -->
       <div class="tool">
-        <button id="draw-btn" title="Dessiner une zone puis télécharger les données OSM">
+        <button id="draw-btn" title="Dessiner un rectangle puis télécharger">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="4 3"></rect><path d="M8 12h8 M12 8v8"></path></svg>
-          <span class="lbl">Télécharger une zone</span>
+          <span class="lbl">Dessiner une zone</span>
         </button>
+        <button id="import-btn" title="Importer un contour GeoJSON pour le découpage">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3 M8 7l4-4 4 4 M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+          <span>Importer un contour</span>
+        </button>
+        <input type="file" id="aoi-file" accept=".geojson,.json,application/geo+json,application/json" hidden>
         <div class="aoi-card" id="aoi-card">
-          <h4>Zone sélectionnée</h4>
+          <h4 id="aoi-title">Zone sélectionnée</h4>
           <p id="aoi-info">—</p>
           <label>Catégories à inclure</label>
           <div id="aoi-cats" class="aoi-cats"></div>
@@ -183,7 +243,7 @@
             <option value="geojson">GeoJSON (.zip)</option>
           </select>
           <div class="btns">
-            <a class="dl" id="aoi-dl" href="#">⬇ Télécharger OSM</a>
+            <button class="dl" id="aoi-dl">⬇ Télécharger</button>
             <button class="clear" id="aoi-clear">Effacer</button>
           </div>
         </div>
@@ -202,49 +262,19 @@
           <option value="none">Aucun (neutre)</option>
         </select>
       </div>
-
     </div>
-
-    <!-- ===== PANNEAU PERMANENT (droite) ===== -->
-    <aside class="panel">
-      <div class="ph"><h2>Couches &amp; données</h2><span class="done" id="done">●</span></div>
-      <p class="hint">Nœud national de données géographiques — OSM ouvert, données institutionnelles et raster sous accès.</p>
-      <div class="fresh" id="fresh"></div>
-
-      <div class="total"><div class="n" id="total-count">—</div><div class="l">objets géographiques dans le nœud</div></div>
-
-      <div class="sec">Couches ouvertes · Open data</div>
-      <div id="layers"><div class="hint">Chargement…</div></div>
-
-      <div class="sec">Orthophotos · Raster</div>
-      <div id="orthos"></div>
-      <div class="layer opacity" id="ortho-opacity-row" style="display:none">
-        <span class="name">Opacité</span>
-        <input type="range" id="ortho-opacity" min="0" max="100" value="80">
-      </div>
-
-      <div class="sec">Données institutionnelles</div>
-      <a class="layer locked" href="portal.html">
-        <span class="sw" style="background:var(--gold)"></span>
-        <span class="name">Projets institutionnels <span class="badge2">RESTREINT</span></span>
-        <span style="color:var(--muted);font-size:12px">Demander →</span>
-      </a>
-
-      <div class="powered">Powered by Geo Wakanda <span class="heart">&#10084;</span></div>
-    </aside>
   </div>
 
   <script>
   const API=`${location.origin}/api`, TITILER=`${location.origin}/tiles`, ACCESS=`${location.origin}/access`;
   const PALETTE=['#E6A817','#4CC9F0','#E07A5F','#C8B6FF','#2EC27E','#E8505B','#3DA5D9','#D9A566'];
-  // couleurs façon OSM pour les couches connues (pastille du panneau)
   const SWATCH={'catalog.routes':'#F2A65A','catalog.cours_eau':'#5AA9E6','catalog.batiments':'#CBB994','catalog.limites_admin':'#B76BA3'};
+
   // ===========================================================================
   //  ICÔNES PAR CATÉGORIE — point unique de maintenance.
   //  Clé = nom court de la couche (sans "catalog."). Pour une NOUVELLE couche,
-  //  ajouter ici une ligne « nom_court: '<contenu SVG>' » (tracé 0 0 24 24).
-  //  'default' est le repli automatique : toute couche future non listée reçoit
-  //  cette icône, sans rien casser.
+  //  ajouter ici « nom_court: '<contenu SVG>' » (tracé 0 0 24 24). 'default' est
+  //  le repli automatique pour toute couche future non listée.
   // ===========================================================================
   const ICONS={
     batiments:'<path d="M3 21h18 M5 21V8l7-4 7 4v13 M9 21v-5h6v5 M8.5 11h1 M14.5 11h1"/>',
@@ -253,14 +283,13 @@
     limites_admin:'<path d="M6 3v18 M6 4h10l-2 3 2 3H6"/><circle cx="6" cy="21" r="1.4" fill="currentColor" stroke="none"/>',
     lieux:'<path d="M12 22s7-7 7-12.5A7 7 0 0 0 5 9.5C5 15 12 22 12 22z"/><circle cx="12" cy="9.3" r="2.4"/>',
     orthophotos:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M4 17.5l4.5-3.5 3.5 2.6 3-2.2 5 3.6"/>',
-    pays:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18 M12 3c3 3 3 15 0 18 M12 3c-3 3-3 15 0 18"/>',
     default:'<path d="M12 3l9 5-9 5-9-5 9-5z M3 12.5l9 5 9-5 M3 16.5l9 5 9-5"/>'
   };
   function iconSvg(short,color){
     const p=ICONS[short]||ICONS.default;
     return `<span class="ic" style="color:${color}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${p}</svg></span>`;
   }
-  // style façon OSM (routes par classe, eau bleue, bâti beige, limites pointillées)
+
   function styleFor(id,color){
     const s={fill:{'fill-color':color,'fill-opacity':0.35,'fill-outline-color':color},
              line:{'line-color':color,'line-width':1.5},
@@ -276,7 +305,6 @@
   }
   const HIDDEN=['catalog.lieux','catalog.orthophotos_couverture','catalog.pays'];
   const ON_BY_DEFAULT=['catalog.routes','catalog.cours_eau','catalog.limites_admin'];
-  // Fonds de carte SANS clé API (Esri + OpenTopoMap + OSM) — CARTO exige désormais une clé.
   const BASEMAPS={
     dark:{t:['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'],a:'© Esri'},
     light:{t:['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'],a:'© Esri'},
@@ -293,8 +321,9 @@
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
 
   const layerIds={}; let firstDataLayer=null;
-  const catalogLayers=[];              // couches ouvertes disponibles : {id, nice}
-  const visibleLayers=new Set();       // couches actuellement affichées sur la carte
+  const catalogLayers=[];              // couches ouvertes : {id, nice, color}
+  const visibleLayers=new Set();       // couches affichées
+
   function setBasemap(key){
     if(map.getLayer('basemap'))map.removeLayer('basemap');
     if(map.getSource('basemap'))map.removeSource('basemap');
@@ -318,7 +347,7 @@
     if(on)visibleLayers.add(id);else visibleLayers.delete(id);}
 
   function downloadMenu(id){const t=id.replace(/^catalog\./,'');
-    return `<details class="dlmenu"><summary title="Télécharger">&#10515;</summary><div class="menu"><div class="h">Télécharger</div>
+    return `<details class="dlmenu"><summary title="Télécharger la couche entière">&#10515;</summary><div class="menu"><div class="h">Couche entière</div>
       <a href="${API}/collections/${id}/items?f=geojson&limit=1000000" download>GeoJSON</a>
       <a href="${API}/collections/${id}/items?f=csv&limit=1000000" download>CSV</a>
       <a href="${ACCESS}/export/${t}?fmt=gpkg">GeoPackage</a>
@@ -329,9 +358,10 @@
     const box=document.getElementById('layers'); let cols=[];
     try{const j=await (await fetch(`${API}/collections?f=json`)).json();
       cols=(j.collections||[]).map(c=>c.id).filter(id=>id.startsWith('catalog.')&&!HIDDEN.includes(id));
-    }catch(e){box.innerHTML='<div class="hint">API indisponible — la stack tourne-t-elle ?</div>';document.getElementById('done').style.color='#E8505B';return;}
-    if(!cols.length){box.innerHTML='<div class="hint">Aucune couche. Données OSM importées ?</div>';loadMask();return;}
+    }catch(e){box.innerHTML='<div class="hint">API indisponible — la stack tourne-t-elle ?</div>';return;}
+    if(!cols.length){box.innerHTML='<div class="hint">Aucune couche. Données OSM importées ?</div>';document.getElementById('osm-count').textContent='0';return;}
     box.innerHTML=''; let total=0;
+    document.getElementById('osm-count').textContent=cols.length+' couche'+(cols.length>1?'s':'');
     for(let i=0;i<cols.length;i++){
       const id=cols[i],color=(SWATCH[id]||PALETTE[i%PALETTE.length]),on=ON_BY_DEFAULT.includes(id);
       addCollection(id,color,on);
@@ -349,18 +379,16 @@
       }).catch(()=>{const c=document.getElementById('c-'+id);if(c){c.textContent='—';c.classList.remove('loading');}});
     }
     setBasemap(document.getElementById('bm').value);
-    loadMask();
   }
 
-  // ---- Masque permanent sur le Cameroun (le reste du monde est grise) ----
+  // ---- Masque permanent : limite souveraine (BD_2022), repli catalog.pays ----
   let maskDone=false;
   async function loadMask(){
     if(maskDone) return;
-    // 1) frontière depuis TES données (souverain) ; 2) repli public tant que l'OSM n'est pas chargé
     let feats=[];
-    try{ const j=await (await fetch(`${API}/collections/catalog.pays/items?limit=50&f=json`)).json(); feats=j.features||[]; }catch(e){}
+    try{ const g=await (await fetch('./cameroun.geojson')).json(); feats=g.features||[]; }catch(e){}
     if(!feats.length){
-      try{ const g=await (await fetch('https://cdn.jsdelivr.net/gh/johan/world.geo.json@master/countries/CMR.geo.json')).json(); feats=g.features||[]; }catch(e){}
+      try{ const j=await (await fetch(`${API}/collections/catalog.pays/items?limit=50&f=json`)).json(); feats=j.features||[]; }catch(e){}
     }
     if(!feats.length) return;
     const holes=[]; let minX=180,minY=90,maxX=-180,maxY=-90;
@@ -374,31 +402,24 @@
     const mask={type:'Feature',geometry:{type:'Polygon',coordinates:[world,...holes]}};
     if(!map.getSource('cm-mask')){
       map.addSource('cm-mask',{type:'geojson',data:mask});
-      map.addLayer({id:'cm-mask',type:'fill',source:'cm-mask',
-        paint:{'fill-color':'#0A1722','fill-opacity':0.62}}, firstDataLayer||undefined);
+      map.addLayer({id:'cm-mask',type:'fill',source:'cm-mask',paint:{'fill-color':'#081219','fill-opacity':0.6}}, firstDataLayer||undefined);
       map.addSource('cm-border',{type:'geojson',data:{type:'FeatureCollection',features:feats}});
-      map.addLayer({id:'cm-border',type:'line',source:'cm-border',
-        paint:{'line-color':'#E6A817','line-width':1.8,'line-opacity':0.9}});
-    } else {
-      map.getSource('cm-mask').setData(mask);
-    }
+      map.addLayer({id:'cm-border-glow',type:'line',source:'cm-border',paint:{'line-color':'#081219','line-width':4,'line-opacity':0.5}});
+      map.addLayer({id:'cm-border',type:'line',source:'cm-border',paint:{'line-color':'#E6A817','line-width':2,'line-opacity':0.95}});
+    } else { map.getSource('cm-mask').setData(mask); }
     maskDone=true;
     map.fitBounds([[minX,minY],[maxX,maxY]],{padding:30,duration:600});
   }
 
+  // ---- Recherche ----
   let placeMarker=null,timer=null; const res=document.getElementById('results');
-
   async function queryNames(coll,q,limit){
     const url=`${API}/collections/${coll}/items?limit=${limit}&f=json&filter-lang=cql2-text&filter=`+encodeURIComponent(`CASEI(nom) LIKE CASEI('%${q}%')`);
     try{ const j=await (await fetch(url)).json(); return j.features||[]; }catch(e){ return []; }
   }
-  // Recherche mondiale OSM via Nominatim, limitee au Cameroun (fonctionne meme
-  // avant l'import des donnees ; complete la recherche dans nos propres couches).
   async function queryNominatim(q){
-    try{
-      const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cm&limit=5&q=${encodeURIComponent(q)}`;
-      const r=await fetch(url,{headers:{'Accept':'application/json'}});
-      return (await r.json())||[];
+    try{ const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cm&limit=5&q=${encodeURIComponent(q)}`;
+      return (await (await fetch(url,{headers:{'Accept':'application/json'}})).json())||[];
     }catch(e){ return []; }
   }
   function bboxOf(geom){ let a=180,b=90,c=-180,d=-90; const scan=cs=>cs.forEach(x=>{ if(typeof x[0]==='number'){a=Math.min(a,x[0]);b=Math.min(b,x[1]);c=Math.max(c,x[0]);d=Math.max(d,x[1]);} else scan(x); }); scan(geom.coordinates); return [[a,b],[c,d]]; }
@@ -408,32 +429,25 @@
     else map.getSource('sel-admin').setData(f);
     try{ map.fitBounds(bboxOf(f.geometry),{padding:40,duration:600}); }catch(e){}
   }
-
   document.getElementById('search').addEventListener('input',e=>{
     const q=e.target.value.trim().toLowerCase();
     document.querySelectorAll('#layers .layer').forEach(el=>{el.style.display=el.dataset.name.includes(q)?'flex':'none';});
     clearTimeout(timer); if(q.length<2){res.style.display='none';return;}
     timer=setTimeout(async ()=>{
       const [admins,lieux,nomi]=await Promise.all([
-        queryNames('catalog.limites_admin',q,5),
-        queryNames('catalog.lieux',q,6),
-        queryNominatim(q)
-      ]);
+        queryNames('catalog.limites_admin',q,5), queryNames('catalog.lieux',q,6), queryNominatim(q)]);
       if(!admins.length && !lieux.length && !nomi.length){ res.innerHTML='<div class="ty">Aucun résultat</div>'; res.style.display='block'; return; }
       res.innerHTML=''; res.style.display='block';
-      // Zones administratives d'abord (nos données)
       admins.forEach(f=>{ const p=f.properties||{};
         const d=document.createElement('div'); d.innerHTML=`${p.nom||'(sans nom)'} <span class="ty">· zone admin${p.niveau_admin?(' niv '+p.niveau_admin):''}</span>`;
         d.onclick=()=>{ selectAdmin(f); res.style.display='none'; document.getElementById('search').value=p.nom||''; };
         res.appendChild(d); });
-      // Puis les lieux (nos données)
       lieux.forEach(f=>{ const p=f.properties||{}, c=f.geometry&&f.geometry.coordinates;
         const d=document.createElement('div'); d.innerHTML=`${p.nom} <span class="ty">· ${p.type_lieu||'lieu'}</span>`;
         d.onclick=()=>{ if(!c)return; map.flyTo({center:c,zoom:12}); if(placeMarker)placeMarker.remove();
           placeMarker=new maplibregl.Marker({color:'#E6A817'}).setLngLat(c).addTo(map);
           res.style.display='none'; document.getElementById('search').value=p.nom; };
         res.appendChild(d); });
-      // Enfin OpenStreetMap / Nominatim (couverture mondiale, repli)
       nomi.forEach(p=>{ const c=[parseFloat(p.lon),parseFloat(p.lat)];
         const label=(p.display_name||'').split(',')[0]||p.display_name;
         const d=document.createElement('div'); d.title=p.display_name||'';
@@ -445,12 +459,10 @@
     },320);
   });
 
-  // coordonnées live
-  map.on('mousemove',e=>{
-    const la=e.lngLat.lat,lo=e.lngLat.lng;
-    document.getElementById('coord').textContent=`${Math.abs(la).toFixed(4)}°${la>=0?'N':'S'}  ${Math.abs(lo).toFixed(4)}°${lo>=0?'E':'O'}`;
-  });
+  map.on('mousemove',e=>{ const la=e.lngLat.lat,lo=e.lngLat.lng;
+    document.getElementById('coord').textContent=`${Math.abs(la).toFixed(4)}°${la>=0?'N':'S'}  ${Math.abs(lo).toFixed(4)}°${lo>=0?'E':'O'}`; });
 
+  // ---- Orthophotos ----
   const activeOrthos=new Set();
   const orthoTiles=s3=>`${TITILER}/cog/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?url=${encodeURIComponent(s3)}`;
   function toggleOrtho(id,s3,on){const src='ortho-'+id,lyr='ortho-'+id;
@@ -459,6 +471,7 @@
     }else{if(map.getLayer(lyr))map.setLayoutProperty(lyr,'visibility','none');activeOrthos.delete(lyr);if(!activeOrthos.size)document.getElementById('ortho-opacity-row').style.display='none';}}
   async function loadOrthos(){const b=document.getElementById('orthos');
     try{const j=await (await fetch(`${API}/collections/catalog.orthophotos_couverture/items?limit=100&f=json`)).json();const feats=j.features||[];
+      document.getElementById('ortho-count').textContent=feats.length+' jeu'+(feats.length>1?'x':'');
       if(!feats.length){b.innerHTML='<div class="hint">Aucune orthophoto.</div>';return;}
       feats.forEach(f=>{const p=f.properties||{},el=document.createElement('label');el.className='layer';
         el.innerHTML=`<input type="checkbox">${iconSvg('orthophotos','#E07A5F')}<span class="name">${p.nom||('Ortho '+p.id)}</span>`;
@@ -466,7 +479,6 @@
     }catch(e){b.innerHTML='<div class="hint">Orthophotos indisponibles.</div>';}}
   document.getElementById('ortho-opacity').addEventListener('input',e=>{const v=e.target.value/100;activeOrthos.forEach(l=>{if(map.getLayer(l))map.setPaintProperty(l,'raster-opacity',v);});});
 
-  // Fraîcheur des données OSM
   function loadMeta(){
     fetch(`${ACCESS}/meta`).then(r=>r.json()).then(m=>{
       const d=m && m.osm && (m.osm.replication_timestamp || m.osm.import_timestamp);
@@ -475,8 +487,15 @@
     }).catch(()=>{});
   }
 
-  // ---- Dessiner une zone (AOI) et télécharger les données OSM découpées ----
-  let drawing=false, drawStart=null, aoiBBox=null;
+  // ---- Accordéon thématique ----
+  document.querySelectorAll('.theme-h').forEach(h=>h.addEventListener('click',()=>{
+    document.getElementById(h.dataset.th).classList.toggle('open');
+  }));
+
+  // =========================================================================
+  //  TÉLÉCHARGEMENT D'UNE ZONE : rectangle dessiné OU contour GeoJSON importé
+  // =========================================================================
+  let drawing=false, drawStart=null, aoiBBox=null, aoiClip=null;  // aoiClip = contour importé (découpe exacte)
   const drawBtn=document.getElementById('draw-btn');
   const aoiCard=document.getElementById('aoi-card');
 
@@ -488,33 +507,62 @@
   }
   function rectGeo(a,b){
     const x1=Math.min(a.lng,b.lng),x2=Math.max(a.lng,b.lng),y1=Math.min(a.lat,b.lat),y2=Math.max(a.lat,b.lat);
-    return {bbox:[x1,y1,x2,y2],feat:{type:'Feature',geometry:{type:'Polygon',
-      coordinates:[[[x1,y1],[x2,y1],[x2,y2],[x1,y2],[x1,y1]]]}}};
+    return {bbox:[x1,y1,x2,y2],feat:{type:'Feature',geometry:{type:'Polygon',coordinates:[[[x1,y1],[x2,y1],[x2,y2],[x1,y2],[x1,y1]]]}}};
   }
-  function setAoi(geo){ ensureAoiLayers(); map.getSource('aoi').setData({type:'FeatureCollection',features:[geo.feat]}); }
+  function setAoiData(fc){ ensureAoiLayers(); map.getSource('aoi').setData(fc); }
+  function gjBbox(gj){ let a=180,b=90,c=-180,d=-90;
+    const scan=cs=>cs.forEach(x=>{ if(typeof x[0]==='number'){a=Math.min(a,x[0]);b=Math.min(b,x[1]);c=Math.max(c,x[0]);d=Math.max(d,x[1]);} else scan(x); });
+    const geoms=gj.type==='FeatureCollection'?gj.features.map(f=>f.geometry):(gj.type==='Feature'?[gj.geometry]:[gj]);
+    geoms.forEach(g=>{ if(g&&g.coordinates) scan(g.coordinates); });
+    return [a,b,c,d];
+  }
+  function hasPolygon(gj){
+    const geoms=gj.type==='FeatureCollection'?(gj.features||[]).map(f=>f&&f.geometry):(gj.type==='Feature'?[gj.geometry]:[gj]);
+    return geoms.some(g=>g&&(g.type==='Polygon'||g.type==='MultiPolygon'));
+  }
+
   function enterDraw(){ drawing=true; drawBtn.classList.add('active');
     drawBtn.querySelector('.lbl').textContent='Cliquez-glissez sur la carte…';
     map.getCanvas().style.cursor='crosshair'; map.dragPan.disable(); }
   function exitDraw(){ drawing=false; drawBtn.classList.remove('active');
-    drawBtn.querySelector('.lbl').textContent='Télécharger une zone';
+    drawBtn.querySelector('.lbl').textContent='Dessiner une zone';
     map.getCanvas().style.cursor=''; map.dragPan.enable(); }
-
   drawBtn.onclick=()=>{ drawing ? exitDraw() : enterDraw(); };
   map.on('mousedown',e=>{ if(!drawing)return; drawStart=e.lngLat; });
-  map.on('mousemove',e=>{ if(drawing&&drawStart) setAoi(rectGeo(drawStart,e.lngLat)); });
+  map.on('mousemove',e=>{ if(drawing&&drawStart) setAoiData({type:'FeatureCollection',features:[rectGeo(drawStart,e.lngLat).feat]}); });
   map.on('mouseup',e=>{ if(!drawing||!drawStart)return;
-    const geo=rectGeo(drawStart,e.lngLat); setAoi(geo); aoiBBox=geo.bbox; drawStart=null; exitDraw(); showAoiCard(); });
+    const geo=rectGeo(drawStart,e.lngLat); setAoiData({type:'FeatureCollection',features:[geo.feat]});
+    aoiBBox=geo.bbox; aoiClip=null; drawStart=null; exitDraw();
+    document.getElementById('aoi-title').textContent='Zone dessinée';
+    document.getElementById('aoi-info').textContent=`Emprise ≈ ${fmtArea(aoiBBox)}. Choisis les catégories, puis télécharge le rectangle découpé.`;
+    openAoiCard(); });
+
+  // import d'un contour GeoJSON
+  const fileInput=document.getElementById('aoi-file');
+  document.getElementById('import-btn').onclick=()=>fileInput.click();
+  fileInput.onchange=e=>{ const f=e.target.files&&e.target.files[0]; if(!f)return;
+    const rd=new FileReader();
+    rd.onload=()=>{ let gj; try{ gj=JSON.parse(rd.result); }catch(err){ alert('Fichier GeoJSON invalide.'); return; }
+      if(!hasPolygon(gj)){ alert('Aucun polygone trouvé dans ce fichier (il faut un contour Polygon ou MultiPolygon).'); return; }
+      aoiClip=gj; aoiBBox=gjBbox(gj);
+      setAoiData(gj.type==='FeatureCollection'?gj:(gj.type==='Feature'?{type:'FeatureCollection',features:[gj]}:{type:'FeatureCollection',features:[{type:'Feature',geometry:gj,properties:{}}]}));
+      try{ map.fitBounds([[aoiBBox[0],aoiBBox[1]],[aoiBBox[2],aoiBBox[3]]],{padding:40,duration:600}); }catch(e2){}
+      document.getElementById('aoi-title').textContent='Contour importé';
+      document.getElementById('aoi-info').textContent=`Fichier : ${f.name}. Découpe EXACTE des catégories choisies sur ce contour.`;
+      openAoiCard();
+    };
+    rd.readAsText(f); e.target.value='';
+  };
 
   function fmtArea(bb){ const [x1,y1,x2,y2]=bb;
     const latM=111320, lonM=111320*Math.cos((y1+y2)/2*Math.PI/180);
     const km2=((x2-x1)*lonM)*((y2-y1)*latM)/1e6;
     return km2<1 ? (km2*100).toFixed(0)+' ha' : km2.toFixed(1)+' km²'; }
-  // Liste des catégories à inclure : construite sur les couches réellement
-  // disponibles, pré-cochées selon ce qui est affiché sur la carte.
+
   function buildAoiCats(){
     const box=document.getElementById('aoi-cats');
     if(!catalogLayers.length){
-      box.innerHTML='<div class="aoi-empty">Les catégories apparaîtront après l\'import des données OSM. Pour l\'instant, toutes les couches disponibles seront incluses.</div>';
+      box.innerHTML='<div class="aoi-empty">Les catégories apparaîtront après l\'import des données OSM. Toutes les couches disponibles seront incluses.</div>';
       return;
     }
     box.innerHTML='<div class="head"><span>Décocher pour exclure</span><span><a id="aoi-all">tout</a> · <a id="aoi-none">rien</a></span></div>';
@@ -522,28 +570,45 @@
       const short=id.replace(/^catalog\./,'');
       const lab=document.createElement('label'); lab.className='aoi-cat';
       lab.innerHTML=`<input type="checkbox" value="${short}" ${visibleLayers.has(id)?'checked':''}>${iconSvg(short,color)}<span>${nice}</span>`;
-      lab.querySelector('input').addEventListener('change',updateAoiLink);
+      lab.querySelector('input').addEventListener('change',updateAoiState);
       box.appendChild(lab);
     });
-    box.querySelector('#aoi-all').onclick=()=>{box.querySelectorAll('input').forEach(c=>c.checked=true);updateAoiLink();};
-    box.querySelector('#aoi-none').onclick=()=>{box.querySelectorAll('input').forEach(c=>c.checked=false);updateAoiLink();};
+    box.querySelector('#aoi-all').onclick=()=>{box.querySelectorAll('input').forEach(c=>c.checked=true);updateAoiState();};
+    box.querySelector('#aoi-none').onclick=()=>{box.querySelectorAll('input').forEach(c=>c.checked=false);updateAoiState();};
   }
-  function updateAoiLink(){ if(!aoiBBox)return;
-    const fmt=document.getElementById('aoi-fmt').value;
-    const picked=[...document.querySelectorAll('#aoi-cats input:checked')].map(c=>c.value);
+  function pickedCats(){ return [...document.querySelectorAll('#aoi-cats input:checked')].map(c=>c.value); }
+  function updateAoiState(){
     const dl=document.getElementById('aoi-dl');
-    if(catalogLayers.length && !picked.length){ // aucune catégorie : bouton inactif
-      dl.removeAttribute('href'); dl.style.opacity=.45; dl.style.pointerEvents='none'; dl.textContent='Choisis une catégorie'; return; }
-    dl.style.opacity=''; dl.style.pointerEvents=''; dl.textContent='⬇ Télécharger OSM';
-    let url=`${ACCESS}/export/aoi?bbox=${aoiBBox.map(n=>n.toFixed(6)).join(',')}&fmt=${fmt}`;
-    if(picked.length) url+=`&layers=${picked.join(',')}`;
-    dl.href=url; }
-  function showAoiCard(){ aoiCard.style.display='block';
-    document.getElementById('aoi-info').textContent=`Emprise ≈ ${fmtArea(aoiBBox)}. Choisis les catégories à inclure, puis télécharge la zone découpée.`;
-    buildAoiCats(); updateAoiLink(); }
-  document.getElementById('aoi-fmt').addEventListener('change',updateAoiLink);
-  document.getElementById('aoi-clear').onclick=()=>{ aoiBBox=null; aoiCard.style.display='none';
+    dl.disabled = (catalogLayers.length>0 && pickedCats().length===0);
+  }
+  function openAoiCard(){ aoiCard.style.display='block'; buildAoiCats(); updateAoiState(); }
+
+  document.getElementById('aoi-fmt').addEventListener('change',updateAoiState);
+  document.getElementById('aoi-clear').onclick=()=>{ aoiBBox=null; aoiClip=null; aoiCard.style.display='none';
     if(map.getSource('aoi'))map.getSource('aoi').setData({type:'FeatureCollection',features:[]}); };
+
+  document.getElementById('aoi-dl').onclick=async ()=>{
+    if(!aoiBBox && !aoiClip) return;
+    const dl=document.getElementById('aoi-dl'); const fmt=document.getElementById('aoi-fmt').value;
+    const layers=pickedCats().join(',');
+    const old=dl.textContent; dl.disabled=true; dl.textContent='Préparation…';
+    try{
+      let resp;
+      if(aoiClip){
+        resp=await fetch(`${ACCESS}/export/clip`,{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({geojson:aoiClip, fmt, layers})});
+      }else{
+        resp=await fetch(`${ACCESS}/export/aoi?bbox=${aoiBBox.map(n=>n.toFixed(6)).join(',')}&fmt=${fmt}&layers=${encodeURIComponent(layers)}`);
+      }
+      if(!resp.ok){ const t=await resp.text().catch(()=> ''); throw new Error(t||('Erreur '+resp.status)); }
+      const blob=await resp.blob();
+      const cd=resp.headers.get('Content-Disposition')||'';
+      const name=(cd.match(/filename="?([^";]+)"?/)||[])[1] || ('zone_osm.'+(fmt==='gpkg'?'gpkg':'zip'));
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click();
+      a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+      dl.textContent='Téléchargé ✓'; setTimeout(()=>{dl.textContent=old;updateAoiState();},1800);
+    }catch(e){ alert('Échec du téléchargement : '+e.message); dl.textContent=old; updateAoiState(); }
+  };
 
   map.on('load',()=>{setBasemap('dark');loadMask();loadLayers();loadOrthos();loadMeta();});
   </script>
