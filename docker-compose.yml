@@ -57,7 +57,7 @@ services:
     image: caddy:2-alpine
     container_name: cgn_web
     ports:
-      - "8090:80"            # en ligne : "80:80" et "443:443" avec un domaine
+      - "8090:80"            # 8080 occupe par GeoServer ; en ligne : "80:80" + "443:443" avec un domaine
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - ./web:/srv:ro
