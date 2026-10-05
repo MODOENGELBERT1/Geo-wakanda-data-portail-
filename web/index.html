@@ -100,8 +100,12 @@
     .results div:hover{background:#15344A}
     .results .ty{color:#8CA7A0;font-size:11.5px}
 
-    .coord{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(10,23,34,.85);border:1px solid #1E3F52;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums}
-    .basemap{position:absolute;bottom:15px;left:15px;z-index:20;background:#0F2635;border:1px solid #1E3F52;border-radius:10px;padding:7px 10px;display:flex;align-items:center;gap:8px}
+    .coord{position:absolute;bottom:15px;left:50%;transform:translateX(-50%);z-index:20;background:rgba(10,23,34,.85);border:1px solid #1E3F52;border-radius:8px;padding:6px 12px;font-size:12px;color:var(--gold);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px}
+    .coord .crs{color:#8CA7A0;font-weight:600;letter-spacing:.03em}
+    .coord .sep{color:#1E3F52}
+    .basemap{position:absolute;bottom:48px;left:15px;z-index:20;background:#0F2635;border:1px solid #1E3F52;border-radius:10px;padding:7px 10px;display:flex;align-items:center;gap:8px}
+    /* échelle MapLibre (bas-gauche), adaptée au thème sombre */
+    .maplibregl-ctrl-scale{background:rgba(10,23,34,.85)!important;color:var(--gold)!important;border:1px solid #1E3F52!important;border-top:none!important;border-radius:0 0 7px 7px;font-size:11px;font-weight:600;padding:2px 7px;margin:0 0 15px 15px!important}
     .basemap label{font-size:11px;color:#8CA7A0}
     .basemap select{border:none;outline:none;font-size:13px;color:#EAF4F1;background:transparent;font-family:inherit;cursor:pointer}
     .basemap select option{color:#111}
@@ -249,7 +253,7 @@
         </div>
       </div>
 
-      <div class="coord" id="coord">—</div>
+      <div class="coord"><span class="crs">WGS 84</span><span class="sep">|</span><span id="coord">—</span></div>
 
       <div class="basemap">
         <label for="bm">Fond</label>
@@ -282,6 +286,8 @@
     cours_eau:'<path d="M3 7c2.6 0 2.6 2 5.2 2s2.6-2 5.2-2 2.6 2 5.2 2 M3 12c2.6 0 2.6 2 5.2 2s2.6-2 5.2-2 2.6 2 5.2 2 M3 17c2.6 0 2.6 2 5.2 2s2.6-2 5.2-2 2.6 2 5.2 2"/>',
     limites_admin:'<path d="M6 3v18 M6 4h10l-2 3 2 3H6"/><circle cx="6" cy="21" r="1.4" fill="currentColor" stroke="none"/>',
     lieux:'<path d="M12 22s7-7 7-12.5A7 7 0 0 0 5 9.5C5 15 12 22 12 22z"/><circle cx="12" cy="9.3" r="2.4"/>',
+    points_interet:'<path d="M12 2l2.6 6.3 6.8.5-5.2 4.4 1.7 6.6L12 16.7 6.1 20.3l1.7-6.6L2.6 9.3l6.8-.5z"/>',
+    usage_sol:'<path d="M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3z M9 4v13 M15 7v13"/>',
     orthophotos:'<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="M4 17.5l4.5-3.5 3.5 2.6 3-2.2 5 3.6"/>',
     default:'<path d="M12 3l9 5-9 5-9-5 9-5z M3 12.5l9 5 9-5 M3 16.5l9 5 9-5"/>'
   };
@@ -319,6 +325,8 @@
     center:[12.35,7.37],zoom:5.2,attributionControl:false});
   map.addControl(new maplibregl.NavigationControl({showCompass:true}),'top-left');
   map.addControl(new maplibregl.AttributionControl({compact:true}),'bottom-right');
+  // Échelle (bas-gauche) — niveau de zoom lisible, comme sur la Plateforme Urbaine
+  map.addControl(new maplibregl.ScaleControl({maxWidth:130,unit:'metric'}),'bottom-left');
 
   const layerIds={}; let firstDataLayer=null;
   const catalogLayers=[];              // couches ouvertes : {id, nice, color}
@@ -329,7 +337,9 @@
     if(map.getSource('basemap'))map.removeSource('basemap');
     const bm=BASEMAPS[key]; if(!bm)return;
     map.addSource('basemap',{type:'raster',tiles:bm.t,tileSize:256,attribution:bm.a});
-    map.addLayer({id:'basemap',type:'raster',source:'basemap'},firstDataLayer||undefined);
+    // le fond reste TOUJOURS sous le masque (donc le masque tient sur tous les fonds, topo compris)
+    const below = map.getLayer('cm-mask') ? 'cm-mask' : (firstDataLayer||undefined);
+    map.addLayer({id:'basemap',type:'raster',source:'basemap'}, below);
   }
   document.getElementById('bm').addEventListener('change',e=>setBasemap(e.target.value));
 
@@ -402,10 +412,11 @@
     const mask={type:'Feature',geometry:{type:'Polygon',coordinates:[world,...holes]}};
     if(!map.getSource('cm-mask')){
       map.addSource('cm-mask',{type:'geojson',data:mask});
-      map.addLayer({id:'cm-mask',type:'fill',source:'cm-mask',paint:{'fill-color':'#081219','fill-opacity':0.6}}, firstDataLayer||undefined);
+      // masque gris translucide (style QML) : grise l'extérieur, laisse voir le fond (topo, satellite…)
+      map.addLayer({id:'cm-mask',type:'fill',source:'cm-mask',paint:{'fill-color':'#383838','fill-opacity':0.58}}, firstDataLayer||undefined);
       map.addSource('cm-border',{type:'geojson',data:{type:'FeatureCollection',features:feats}});
-      map.addLayer({id:'cm-border-glow',type:'line',source:'cm-border',paint:{'line-color':'#081219','line-width':4,'line-opacity':0.5}});
-      map.addLayer({id:'cm-border',type:'line',source:'cm-border',paint:{'line-color':'#E6A817','line-width':2,'line-opacity':0.95}});
+      map.addLayer({id:'cm-border-glow',type:'line',source:'cm-border',paint:{'line-color':'#202020','line-width':3.5,'line-opacity':0.5}});
+      map.addLayer({id:'cm-border',type:'line',source:'cm-border',paint:{'line-color':'#E6A817','line-width':1.8,'line-opacity':0.95}});
     } else { map.getSource('cm-mask').setData(mask); }
     maskDone=true;
     map.fitBounds([[minX,minY],[maxX,maxY]],{padding:30,duration:600});
@@ -417,9 +428,9 @@
     const url=`${API}/collections/${coll}/items?limit=${limit}&f=json&filter-lang=cql2-text&filter=`+encodeURIComponent(`CASEI(nom) LIKE CASEI('%${q}%')`);
     try{ const j=await (await fetch(url)).json(); return j.features||[]; }catch(e){ return []; }
   }
-  async function queryNominatim(q){
-    try{ const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cm&limit=5&q=${encodeURIComponent(q)}`;
-      return (await (await fetch(url,{headers:{'Accept':'application/json'}})).json())||[];
+  async function queryNominatim(q,signal){
+    try{ const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cm&limit=5&dedupe=1&q=${encodeURIComponent(q)}`;
+      return (await (await fetch(url,{headers:{'Accept':'application/json'},signal})).json())||[];
     }catch(e){ return []; }
   }
   function bboxOf(geom){ let a=180,b=90,c=-180,d=-90; const scan=cs=>cs.forEach(x=>{ if(typeof x[0]==='number'){a=Math.min(a,x[0]);b=Math.min(b,x[1]);c=Math.max(c,x[0]);d=Math.max(d,x[1]);} else scan(x); }); scan(geom.coordinates); return [[a,b],[c,d]]; }
@@ -429,34 +440,54 @@
     else map.getSource('sel-admin').setData(f);
     try{ map.fitBounds(bboxOf(f.geometry),{padding:40,duration:600}); }catch(e){}
   }
+  function addAdminRow(f){ const p=f.properties||{};
+    const d=document.createElement('div'); d.innerHTML=`${p.nom||'(sans nom)'} <span class="ty">· zone admin${p.niveau_admin?(' niv '+p.niveau_admin):''}</span>`;
+    d.onclick=()=>{ selectAdmin(f); res.style.display='none'; document.getElementById('search').value=p.nom||''; };
+    return d; }
+  function addLieuRow(f){ const p=f.properties||{}, c=f.geometry&&f.geometry.coordinates;
+    const d=document.createElement('div'); d.innerHTML=`${p.nom} <span class="ty">· ${p.type_lieu||'lieu'}</span>`;
+    d.onclick=()=>{ if(!c)return; map.flyTo({center:c,zoom:12}); if(placeMarker)placeMarker.remove();
+      placeMarker=new maplibregl.Marker({color:'#E6A817'}).setLngLat(c).addTo(map);
+      res.style.display='none'; document.getElementById('search').value=p.nom; };
+    return d; }
+  function addNomiRow(p){ const c=[parseFloat(p.lon),parseFloat(p.lat)];
+    const label=(p.display_name||'').split(',')[0]||p.display_name;
+    const d=document.createElement('div'); d.title=p.display_name||'';
+    d.innerHTML=`${label} <span class="ty">· ${(p.type||'lieu')} (OpenStreetMap)</span>`;
+    d.onclick=()=>{ map.flyTo({center:c,zoom:13}); if(placeMarker)placeMarker.remove();
+      placeMarker=new maplibregl.Marker({color:'#3DA5D9'}).setLngLat(c).addTo(map);
+      res.style.display='none'; document.getElementById('search').value=label; };
+    return d; }
+
+  // Recherche : LOCAL d'abord (instantané), Nominatim en différé, non bloquant, annulable.
+  let searchSeq=0, nomiAbort=null;
+  function renderResults(admins,lieux,nomi,pending){
+    if(!admins.length && !lieux.length && !(nomi&&nomi.length) && !pending){
+      res.innerHTML='<div class="ty">Aucun résultat</div>'; res.style.display='block'; return; }
+    res.innerHTML=''; res.style.display='block';
+    admins.forEach(f=>res.appendChild(addAdminRow(f)));
+    lieux.forEach(f=>res.appendChild(addLieuRow(f)));
+    if(nomi) nomi.forEach(p=>res.appendChild(addNomiRow(p)));
+    if(pending){ const d=document.createElement('div'); d.className='ty'; d.textContent='Recherche sur OpenStreetMap…'; res.appendChild(d); }
+  }
   document.getElementById('search').addEventListener('input',e=>{
-    const q=e.target.value.trim().toLowerCase();
-    document.querySelectorAll('#layers .layer').forEach(el=>{el.style.display=el.dataset.name.includes(q)?'flex':'none';});
-    clearTimeout(timer); if(q.length<2){res.style.display='none';return;}
+    const q=e.target.value.trim(), ql=q.toLowerCase();
+    document.querySelectorAll('#layers .layer').forEach(el=>{el.style.display=el.dataset.name.includes(ql)?'flex':'none';});
+    clearTimeout(timer); if(nomiAbort){nomiAbort.abort();nomiAbort=null;}
+    if(q.length<2){res.style.display='none';return;}
+    const seq=++searchSeq;
     timer=setTimeout(async ()=>{
-      const [admins,lieux,nomi]=await Promise.all([
-        queryNames('catalog.limites_admin',q,5), queryNames('catalog.lieux',q,6), queryNominatim(q)]);
-      if(!admins.length && !lieux.length && !nomi.length){ res.innerHTML='<div class="ty">Aucun résultat</div>'; res.style.display='block'; return; }
-      res.innerHTML=''; res.style.display='block';
-      admins.forEach(f=>{ const p=f.properties||{};
-        const d=document.createElement('div'); d.innerHTML=`${p.nom||'(sans nom)'} <span class="ty">· zone admin${p.niveau_admin?(' niv '+p.niveau_admin):''}</span>`;
-        d.onclick=()=>{ selectAdmin(f); res.style.display='none'; document.getElementById('search').value=p.nom||''; };
-        res.appendChild(d); });
-      lieux.forEach(f=>{ const p=f.properties||{}, c=f.geometry&&f.geometry.coordinates;
-        const d=document.createElement('div'); d.innerHTML=`${p.nom} <span class="ty">· ${p.type_lieu||'lieu'}</span>`;
-        d.onclick=()=>{ if(!c)return; map.flyTo({center:c,zoom:12}); if(placeMarker)placeMarker.remove();
-          placeMarker=new maplibregl.Marker({color:'#E6A817'}).setLngLat(c).addTo(map);
-          res.style.display='none'; document.getElementById('search').value=p.nom; };
-        res.appendChild(d); });
-      nomi.forEach(p=>{ const c=[parseFloat(p.lon),parseFloat(p.lat)];
-        const label=(p.display_name||'').split(',')[0]||p.display_name;
-        const d=document.createElement('div'); d.title=p.display_name||'';
-        d.innerHTML=`${label} <span class="ty">· ${(p.type||'lieu')} (OpenStreetMap)</span>`;
-        d.onclick=()=>{ map.flyTo({center:c,zoom:13}); if(placeMarker)placeMarker.remove();
-          placeMarker=new maplibregl.Marker({color:'#3DA5D9'}).setLngLat(c).addTo(map);
-          res.style.display='none'; document.getElementById('search').value=label; };
-        res.appendChild(d); });
-    },320);
+      const [admins,lieux]=await Promise.all([queryNames('catalog.limites_admin',ql,5),queryNames('catalog.lieux',ql,6)]);
+      if(seq!==searchSeq) return;
+      const willNomi = q.length>=3 && (admins.length+lieux.length)<4;   // Nominatim seulement en complément
+      renderResults(admins,lieux,null,willNomi);
+      if(willNomi){
+        nomiAbort=new AbortController();
+        const nomi=await queryNominatim(q,nomiAbort.signal);
+        if(seq!==searchSeq) return;
+        renderResults(admins,lieux,nomi,false);
+      }
+    },280);
   });
 
   map.on('mousemove',e=>{ const la=e.lngLat.lat,lo=e.lngLat.lng;

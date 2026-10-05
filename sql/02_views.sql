@@ -64,6 +64,29 @@ SELECT
 FROM public.planet_osm_point
 WHERE place IS NOT NULL AND name IS NOT NULL;
 
+-- Points d'interet (POI : services, commerces, tourisme, loisirs) -------------
+DROP VIEW IF EXISTS catalog.points_interet CASCADE;
+CREATE VIEW catalog.points_interet AS
+SELECT
+    osm_id                                                   AS id,
+    name                                                     AS nom,
+    COALESCE(amenity, shop, tourism, leisure, office)        AS categorie,
+    ST_Transform(way, 4326)                                  AS geom
+FROM public.planet_osm_point
+WHERE amenity IS NOT NULL OR shop IS NOT NULL OR tourism IS NOT NULL
+   OR leisure IS NOT NULL OR office IS NOT NULL;
+
+-- Usage du sol (polygones : landuse / naturel / loisirs) ----------------------
+DROP VIEW IF EXISTS catalog.usage_sol CASCADE;
+CREATE VIEW catalog.usage_sol AS
+SELECT
+    osm_id                                                   AS id,
+    name                                                     AS nom,
+    COALESCE(landuse, "natural", leisure)                    AS type_usage,
+    ST_Transform(way, 4326)                                  AS geom
+FROM public.planet_osm_polygon
+WHERE landuse IS NOT NULL OR "natural" IS NOT NULL OR leisure IS NOT NULL;
+
 -- Frontiere nationale (sert au MASQUE permanent sur le Cameroun) --------------
 DROP VIEW IF EXISTS catalog.pays CASCADE;
 CREATE VIEW catalog.pays AS
@@ -79,4 +102,6 @@ COMMENT ON VIEW catalog.batiments     IS 'Batiments OSM du Cameroun (donnee ouve
 COMMENT ON VIEW catalog.routes        IS 'Reseau routier OSM du Cameroun (donnee ouverte)';
 COMMENT ON VIEW catalog.cours_eau     IS 'Cours d eau OSM du Cameroun (donnee ouverte)';
 COMMENT ON VIEW catalog.limites_admin IS 'Limites administratives OSM du Cameroun (donnee ouverte)';
-COMMENT ON VIEW catalog.lieux         IS 'Lieux habites OSM (recherche de lieu)';
+COMMENT ON VIEW catalog.lieux           IS 'Lieux habites OSM (recherche de lieu)';
+COMMENT ON VIEW catalog.points_interet  IS 'Points d interet OSM : services, commerces, tourisme (donnee ouverte)';
+COMMENT ON VIEW catalog.usage_sol       IS 'Usage du sol OSM : landuse, naturel, loisirs (donnee ouverte)';

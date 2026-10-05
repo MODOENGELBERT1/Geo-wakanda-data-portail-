@@ -407,7 +407,8 @@ def export_open(layer: str, fmt: str = "gpkg"):
 #   * /export/aoi  : un rectangle dessine sur la carte (bbox, decoupe rapide -spat)
 #   * /export/clip : un contour GeoJSON importe (decoupe EXACTE au polygone -clipsrc)
 # Les deux exportent les couches OUVERTES (schema catalog) dans le format choisi.
-AOI_DEFAULT_LAYERS = ["batiments", "routes", "cours_eau", "limites_admin", "lieux"]
+AOI_DEFAULT_LAYERS = ["batiments", "routes", "cours_eau", "limites_admin",
+                      "lieux", "points_interet", "usage_sol"]
 AOI_EXCLUDE = {"orthophotos_couverture", "pays"}
 
 
